@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo de Tracking CDP</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+        button { font-size: 1.2em; padding: 10px 15px; margin: 5px; cursor: pointer; border-radius: 5px; border: 1px solid #ccc; }
+        #identify-btn { background-color: #2980b9; color: white; }
+        #track-purchase-btn { background-color: #27ae60; color: white; }
+        #track-fail-btn { background-color: #e74c3c; color: white; }
+        #log { background-color: #f4f4f4; border-left: 4px solid #ccc; padding: 10px; margin-top: 20px; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h1>Demostración del Mensajero Silencioso (CDP)</h1>
+    <p>Usa los botones para enviar eventos al CDP. Revisa el dashboard para ver los perfiles actualizados.</p>
+
+    <button id="identify-btn">1. Identificar Usuario "mentor-007"</button>
+    <button id="track-purchase-btn">2. Rastrear Compra ($99)</button>
+    <button id="track-fail-btn">3. Rastrear Login Fallido</button>
+    
+    <div id="log">Logs de eventos enviados aparecerán aquí...</div>
+
+    <!-- PASO 1: Snippet de Tracking -->
+    <script>
+      const cdp = {
+        userId: null,
+        logElement: document.getElementById('log'),
+        
+        track: function(eventName, eventData = {}) {
+          if (!this.userId) {
+            this.logElement.innerHTML += `\n<span style="color:orange;">ADVERTENCIA: Evento '${eventName}' bloqueado. Llama a cdp.identify() primero.</span>`;
+            return;
+          }
+          const payload = { userId: this.userId, event: { name: eventName, data: eventData } };
+          navigator.sendBeacon('URL_DE_TU_WORKER/cdp/track', JSON.stringify(payload));
+          this.logElement.innerHTML += `\n<span style="color:green;">EVENTO ENVIADO:</span> ${JSON.stringify(payload)}`;
+        },
+
+        identify: function(userId, traits = {}) {
+          this.userId = userId;
+          const payload = { userId: this.userId, traits };
+          navigator.sendBeacon('URL_DE_TU_WORKER/cdp/track', JSON.stringify(payload));
+          this.logElement.innerHTML = `<span style="color:blue;">USUARIO IDENTIFICADO:</span> ${JSON.stringify(payload)}`;
+        }
+      };
+    </script>
+
+    <!-- PASO 2: Lógica de la Página (disparadores de eventos) -->
+    <script>
+        document.getElementById('identify-btn').addEventListener('click', () => {
+            cdp.identify('mentor-007', { name: 'Mentor IA', plan: 'enterprise', signedUp: '2024-05-21' });
+        });
+
+        document.getElementById('track-purchase-btn').addEventListener('click', () => {
+            cdp.track('purchase', { amount: 99, productId: 'COURSE-AI-FINANCE' });
+        });
+        
+        document.getElementById('track-fail-btn').addEventListener('click', () => {
+            cdp.track('loginFailed');
+        });
+    </script>
+
+</body>
+</html>
